@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # to dispatch the test workflow after the bot push
 
 jobs:
   bump:
@@ -51,3 +52,7 @@ jobs:
           git add Formula/docassert.rb
           git commit -m "docassert ${OLD} -> ${NEW} (auto-bump)"
           git push
+          # bot pushes don't trigger workflows; kick the formula test explicitly
+          gh workflow run test.yml --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
