@@ -3,8 +3,8 @@ class Docassert < Formula
 
   desc "Unit testing for business documents (PMO as Code reference implementation)"
   homepage "https://docassert.com"
-  url "https://files.pythonhosted.org/packages/dc/3d/2b4b1e1bcf21985cc53e164e7b844b3f4d6560e91333ebe9f2b8f8acc9e9/docassert-0.7.0.tar.gz"
-  sha256 "9f53714a160a8d4e2f2e96c585cd9fe1677c0797ce96f5a59ad006c2a89e3bb4"
+  url "https://files.pythonhosted.org/packages/40/53/b3dbac6a9c8219ebe0cc72f7aa24f7bb7e2b8d44c1f409ee11e5048a1a84/docassert-0.7.1.tar.gz"
+  sha256 "529c2357695a3599142762e01c7fb8ebc1f809bf042979af64a97a2cf77f43e3"
   license "Apache-2.0"
 
   depends_on "python@3.12"
