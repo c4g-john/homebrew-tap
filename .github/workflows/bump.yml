@@ -1,0 +1,53 @@
+name: bump formula
+
+# Keeps Formula/docassert.rb pointing at the latest PyPI release: daily check,
+# rewrite url+sha256 on a new version, push — the `test formula` workflow then
+# installs and tests it on a clean macOS runner.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump to the latest PyPI release if newer
+        run: |
+          python3 - <<'EOF'
+          import json, re, urllib.request
+          from pathlib import Path
+
+          d = json.load(urllib.request.urlopen("https://pypi.org/pypi/docassert/json"))
+          latest = d["info"]["version"]
+          sdist = next(f for f in d["urls"] if f["packagetype"] == "sdist")
+
+          p = Path("Formula/docassert.rb")
+          t = p.read_text()
+          cur = re.search(r'/docassert-([0-9.]+)\.tar\.gz', t).group(1)
+          if cur == latest:
+              print(f"formula already at {latest} — nothing to do")
+              raise SystemExit(0)
+
+          # replace only the main package url + its sha256 (the first pair)
+          t = re.sub(r'url "https://files\.pythonhosted\.org/[^"]*/docassert-[0-9.]+\.tar\.gz"',
+                     f'url "{sdist["url"]}"', t, count=1)
+          t = re.sub(r'(url "[^"]*docassert-[0-9.]+\.tar\.gz"\n  sha256 ")[0-9a-f]{64}(")',
+                     rf'\g<1>{sdist["digests"]["sha256"]}\g<2>', t, count=1)
+          p.write_text(t)
+          Path(".bumped").write_text(f"{cur} {latest}")
+          print(f"bumped {cur} -> {latest}")
+          EOF
+      - name: Commit and push
+        run: |
+          [ -f .bumped ] || exit 0
+          read -r OLD NEW < .bumped && rm .bumped
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/docassert.rb
+          git commit -m "docassert ${OLD} -> ${NEW} (auto-bump)"
+          git push
