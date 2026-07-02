@@ -1,0 +1,22 @@
+name: test formula
+
+# Installs and tests the formula on a pristine macOS runner on every push/PR —
+# the honest proof the tap works regardless of any one machine's toolchain.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  install-and-test:
+    runs-on: macos-latest
+    steps:
+      - name: Tap, trust, install
+        run: |
+          brew tap c4g-john/tap
+          brew trust c4g-john/tap 2>/dev/null || true   # Homebrew <6 has no trust
+          brew install --verbose docassert 2>&1 | tail -5
+      - name: Formula test block + smoke
+        run: |
+          brew test docassert
+          docassert --version
