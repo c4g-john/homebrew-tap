@@ -57,10 +57,12 @@ jobs:
           # Rebase-and-retry: another writer (cadence PRs, dependabot) may land
           # on main between checkout and push; a rejected push must converge,
           # not fail the bump.
-          for attempt in 1 2 3; do
-            git push && break
+          pushed=""
+          for _ in 1 2 3; do
+            if git push; then pushed=1; break; fi
             git pull --rebase origin main
           done
+          [ -n "$pushed" ] || { echo "push failed after 3 rebase-and-retry attempts"; exit 1; }
           # bot pushes don't trigger workflows; kick the formula test explicitly
           gh workflow run test.yml --repo "$GITHUB_REPOSITORY"
         env:
