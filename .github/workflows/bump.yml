@@ -46,24 +46,25 @@ jobs:
           Path(".bumped").write_text(f"{cur} {latest}")
           print(f"bumped {cur} -> {latest}")
           EOF
-      - name: Commit and push
+      - name: Open a gated bump PR
+        # main is protected (actionlint + install-and-test): the formula gates
+        # BEFORE it lands, and the PR self-merges once green. BUMP_TOKEN makes
+        # required checks trigger on the PR (Actions-token PRs never do).
+        env:
+          GH_TOKEN: ${{ secrets.BUMP_TOKEN || github.token }}
         run: |
           [ -f .bumped ] || exit 0
           read -r OLD NEW < .bumped && rm .bumped
+          branch="formula-docassert-$NEW"
+          if gh pr list --head "$branch" --json number -q length | grep -qv '^0$'; then
+            echo "formula PR already open"; exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
           git add Formula/docassert.rb
           git commit -m "docassert ${OLD} -> ${NEW} (auto-bump)"
-          # Rebase-and-retry: another writer (cadence PRs, dependabot) may land
-          # on main between checkout and push; a rejected push must converge,
-          # not fail the bump.
-          pushed=""
-          for _ in 1 2 3; do
-            if git push; then pushed=1; break; fi
-            git pull --rebase origin main
-          done
-          [ -n "$pushed" ] || { echo "push failed after 3 rebase-and-retry attempts"; exit 1; }
-          # bot pushes don't trigger workflows; kick the formula test explicitly
-          gh workflow run test.yml --repo "$GITHUB_REPOSITORY"
-        env:
-          GH_TOKEN: ${{ github.token }}
+          git push -u origin "$branch"
+          gh pr create --title "docassert ${OLD} → ${NEW} (auto-bump)" \
+            --body "Automated formula bump. Gated by actionlint + install-and-test before merge."
+          gh pr merge --auto --squash "$branch" || gh pr merge --squash "$branch" || true
