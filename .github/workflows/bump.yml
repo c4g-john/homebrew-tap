@@ -54,7 +54,13 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/docassert.rb
           git commit -m "docassert ${OLD} -> ${NEW} (auto-bump)"
-          git push
+          # Rebase-and-retry: another writer (cadence PRs, dependabot) may land
+          # on main between checkout and push; a rejected push must converge,
+          # not fail the bump.
+          for attempt in 1 2 3; do
+            git push && break
+            git pull --rebase origin main
+          done
           # bot pushes don't trigger workflows; kick the formula test explicitly
           gh workflow run test.yml --repo "$GITHUB_REPOSITORY"
         env:
