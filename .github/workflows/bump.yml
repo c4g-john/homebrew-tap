@@ -1,11 +1,11 @@
 name: bump formula
 
-# Keeps Formula/docassert.rb pointing at the latest PyPI release: daily check,
+# Keeps Formula/docassert.rb pointing at the latest PyPI release: release dispatch,
 # rewrite url+sha256 on a new version, push — the `test formula` workflow then
 # installs and tests it on a clean macOS runner.
 on:
-  schedule:
-    - cron: "17 */2 * * *"
+  repository_dispatch:
+    types: [docassert-release]
   workflow_dispatch:
 
 permissions:
